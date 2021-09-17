@@ -36,6 +36,7 @@
     "@types/serverless": "^1.78.35",
     "@typescript-eslint/eslint-plugin": "^4.31.1",
     "@typescript-eslint/parser": "^4.31.1",
+    "aws-sdk": "^2.989.0",
     "eslint": "^7.32.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-import": "^2.24.2",
@@ -47,5 +48,8 @@
   },
   "peerDependencies": {
     "serverless": "^1.60.0 || ^2.0.0"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2"
   }
 }
