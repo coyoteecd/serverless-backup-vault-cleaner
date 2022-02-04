@@ -1,5 +1,6 @@
 import type { DeleteRecoveryPointInput, ListRecoveryPointsByBackupVaultOutput } from 'aws-sdk/clients/backup';
-import Serverless from 'serverless';
+import Serverless, { Options } from 'serverless';
+import { Logging } from 'serverless/classes/Plugin';
 import Aws from 'serverless/plugins/aws/provider/awsProvider';
 import ServerlessBackupVaultCleaner from '../src/index';
 
@@ -7,13 +8,13 @@ describe('ServerlessBackupVaultCleaner', () => {
 
   it('should create the plugin', () => {
     const { serverless } = stubServerlessInstance();
-    const plugin = new ServerlessBackupVaultCleaner(serverless);
+    const plugin = new ServerlessBackupVaultCleaner(serverless, {} as Options, stubLogging());
     expect(plugin).toBeTruthy();
   });
 
   it('should fail when neither backupVaults nor backupVaultsToCleanOnDeploy is configured', async () => {
     const { serverless } = stubServerlessInstance({});
-    const plugin = new ServerlessBackupVaultCleaner(serverless);
+    const plugin = new ServerlessBackupVaultCleaner(serverless, {} as Options, stubLogging());
     expect(plugin).toBeTruthy();
 
     const removeFn = plugin.hooks['before:remove:remove'];
@@ -27,7 +28,7 @@ describe('ServerlessBackupVaultCleaner', () => {
       const { requestSpy, serverless } = stubServerlessInstance({
         backupVaults: ['b1', 'b2'],
       });
-      const plugin = new ServerlessBackupVaultCleaner(serverless);
+      const plugin = new ServerlessBackupVaultCleaner(serverless, {} as Options, stubLogging());
 
       requestSpy.withArgs('Backup', 'listRecoveryPointsByBackupVault', jasmine.anything()).and.resolveTo({
         RecoveryPoints: [
@@ -53,7 +54,7 @@ describe('ServerlessBackupVaultCleaner', () => {
       const { requestSpy, serverless } = stubServerlessInstance({
         backupVaults: ['b1'],
       });
-      const plugin = new ServerlessBackupVaultCleaner(serverless);
+      const plugin = new ServerlessBackupVaultCleaner(serverless, {} as Options, stubLogging());
 
       let callCount = 0;
       requestSpy.withArgs('Backup', 'listRecoveryPointsByBackupVault', jasmine.anything()).and.callFake(() => ({
@@ -78,7 +79,8 @@ describe('ServerlessBackupVaultCleaner', () => {
       const { requestSpy, serverless } = stubServerlessInstance({
         backupVaults: ['b1', 'b2'],
       });
-      const plugin = new ServerlessBackupVaultCleaner(serverless);
+      const logging = stubLogging();
+      const plugin = new ServerlessBackupVaultCleaner(serverless, {} as Options, logging);
 
       const errorMsg = 'bad object';
       let callCount = 0;
@@ -102,14 +104,15 @@ describe('ServerlessBackupVaultCleaner', () => {
       expect(requestSpy).not.toHaveBeenCalledWith('Backup', 'deleteRecoveryPoint', jasmine.objectContaining<DeleteRecoveryPointInput>({
         BackupVaultName: 'b2'
       }));
-      expect(serverless.cli.log).toHaveBeenCalledWith(jasmine.stringMatching(`cannot be emptied. ${errorMsg}`));
+      expect(logging.log.error).toHaveBeenCalledWith(jasmine.stringMatching(`cannot be emptied. ${errorMsg}`));
     });
 
     it('should log a message when deleting a recovery point fails', async () => {
       const { requestSpy, serverless } = stubServerlessInstance({
         backupVaults: ['b1'],
       });
-      const plugin = new ServerlessBackupVaultCleaner(serverless);
+      const logging = stubLogging();
+      const plugin = new ServerlessBackupVaultCleaner(serverless, {} as Options, logging);
 
       requestSpy.withArgs('Backup', 'listRecoveryPointsByBackupVault', jasmine.anything()).and.resolveTo({
         RecoveryPoints: [
@@ -128,14 +131,15 @@ describe('ServerlessBackupVaultCleaner', () => {
       const removeFn = plugin.hooks['before:remove:remove'];
       await expectAsync(removeFn()).toBeResolved();
 
-      expect(serverless.cli.log).toHaveBeenCalledWith(jasmine.stringMatching('cannot be emptied. Error: Fail'));
+      expect(logging.log.error).toHaveBeenCalledWith(jasmine.stringMatching('cannot be emptied. Error: Fail'));
     });
 
     it('should skip backup vaults that do not exist', async () => {
       const { requestSpy, serverless } = stubServerlessInstance({
         backupVaults: ['b1'],
       });
-      const plugin = new ServerlessBackupVaultCleaner(serverless);
+      const logging = stubLogging();
+      const plugin = new ServerlessBackupVaultCleaner(serverless, {} as Options, logging);
 
       requestSpy.withArgs('Backup', 'listRecoveryPointsByBackupVault', jasmine.anything()).and.resolveTo(
         { RecoveryPoints: [] } as ListRecoveryPointsByBackupVaultOutput
@@ -146,14 +150,14 @@ describe('ServerlessBackupVaultCleaner', () => {
       await expectAsync(removeFn()).toBeResolved();
 
       expect(requestSpy).not.toHaveBeenCalledWith('Backup', 'listRecoveryPointsByBackupVault', jasmine.anything());
-      expect(serverless.cli.log).toHaveBeenCalledWith(jasmine.stringMatching('skipping'));
+      expect(logging.log.warning).toHaveBeenCalledWith(jasmine.stringMatching('skipping'));
     });
 
     it('should skip configured backupVaultsToCleanOnDeploy', async () => {
       const { requestSpy, serverless } = stubServerlessInstance({
         backupVaultsToCleanOnDeploy: ['b2']
       });
-      const plugin = new ServerlessBackupVaultCleaner(serverless);
+      const plugin = new ServerlessBackupVaultCleaner(serverless, {} as Options, stubLogging());
 
       requestSpy.withArgs('Backup', 'listRecoveryPointsByBackupVault', jasmine.anything()).and.resolveTo({
         RecoveryPoints: [
@@ -173,7 +177,7 @@ describe('ServerlessBackupVaultCleaner', () => {
       const { requestSpy, serverless } = stubServerlessInstance({
         backupVaults: ['b1']
       });
-      const plugin = new ServerlessBackupVaultCleaner(serverless);
+      const plugin = new ServerlessBackupVaultCleaner(serverless, {} as Options, stubLogging());
 
       requestSpy.withArgs('Backup', 'listRecoveryPointsByBackupVault', jasmine.anything()).and.resolveTo({
         RecoveryPoints: [
@@ -191,7 +195,7 @@ describe('ServerlessBackupVaultCleaner', () => {
       const { requestSpy, serverless } = stubServerlessInstance({
         backupVaultsToCleanOnDeploy: ['b1', 'b2']
       });
-      const plugin = new ServerlessBackupVaultCleaner(serverless);
+      const plugin = new ServerlessBackupVaultCleaner(serverless, {} as Options, stubLogging());
 
       requestSpy.withArgs('Backup', 'listRecoveryPointsByBackupVault', jasmine.anything()).and.resolveTo({
         RecoveryPoints: [
@@ -229,6 +233,15 @@ describe('ServerlessBackupVaultCleaner', () => {
           }
         })
       })
+    };
+  }
+
+  function stubLogging(): { writeText, log: jasmine.SpyObj<Logging['log']> } {
+    return {
+      writeText: undefined,
+      log: jasmine.createSpyObj<Logging['log']>([
+        'error', 'warning', 'success', 'notice'
+      ])
     };
   }
 });

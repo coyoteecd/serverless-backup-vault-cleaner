@@ -2,31 +2,26 @@ import type {
   DeleteRecoveryPointInput, DescribeBackupVaultInput,
   ListRecoveryPointsByBackupVaultInput, ListRecoveryPointsByBackupVaultOutput, RecoveryPointByBackupVaultList
 } from 'aws-sdk/clients/backup';
-import chalk from 'chalk';
-import Serverless from 'serverless';
-import Plugin from 'serverless/classes/Plugin';
+import Serverless, { Options } from 'serverless';
+import Plugin, { Logging } from 'serverless/classes/Plugin';
 import Aws from 'serverless/plugins/aws/provider/awsProvider';
 
 export default class ServerlessBackupVaultCleaner implements Plugin {
   public hooks: Plugin.Hooks;
   private provider: Aws;
+  private log: Logging['log'];
 
   constructor(
-    private readonly serverless: Serverless
+    private readonly serverless: Serverless,
+    _options: Options,
+    logging: Logging,
   ) {
+    this.log = logging.log;
     this.provider = this.serverless.getProvider('aws');
     this.hooks = {
       'before:deploy:deploy': async () => this.remove(true),
       'before:remove:remove': async () => this.remove(false),
     };
-  }
-
-  private log(message: string): void {
-    this.serverless.cli.log(`serverless-backup-vault-cleaner: ${chalk.yellow(message)}`);
-  }
-
-  private logError(message: string): void {
-    this.serverless.cli.log(chalk.red(`serverless-backup-vault-cleaner: ${message}`));
   }
 
   private async remove(isDeploying: boolean): Promise<void> {
@@ -41,7 +36,7 @@ export default class ServerlessBackupVaultCleaner implements Plugin {
       if (exists) {
         existingVaults.push(backupVault);
       } else {
-        this.logError(`${backupVault} not found or you do not have permissions, skipping...`);
+        this.log.warning(`${backupVault} not found or you do not have permissions, skipping...`);
       }
     }
 
@@ -49,8 +44,8 @@ export default class ServerlessBackupVaultCleaner implements Plugin {
     const removePromises = existingVaults.map(vaultName => this
       .listRecoveryPoints(vaultName)
       .then(keys => this.deleteRecoveryPoints(vaultName, keys))
-      .then(() => this.log(`${vaultName} successfully emptied`))
-      .catch(err => this.logError(`${vaultName} cannot be emptied. ${err}`)));
+      .then(() => this.log.success(`${vaultName} successfully emptied`))
+      .catch(err => this.log.error(`${vaultName} cannot be emptied. ${err}`)));
 
     await Promise.all(removePromises);
   }

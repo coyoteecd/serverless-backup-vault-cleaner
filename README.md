@@ -14,6 +14,16 @@ This makes it possible to remove stacks that contain a backup vault as a resourc
 npm install serverless-backup-vault-cleaner --save-dev
 ```
 
+### Compatibility with Serverless Framework
+
+Version 1.0.1 is compatible with Serverless Framework v3, but it uses the legacy logging interface. Version 2.0.0 and later uses the [new logging interface](https://www.serverless.com/framework/docs/guides/plugins/cli-output).
+
+|serverless-backup-vault-cleaner|Serverless Framework|
+|---|---|
+|v1.0.0|v1.x, v2.x|
+|v1.0.1|v1.x, v2.x, v3.x|
+|≥ v2.0.0|v3.x|
+
 ## Usage
 
 Add the following to your `serverless.yml`:
