@@ -42,6 +42,9 @@ module.exports = {
     'object-curly-newline': 'off',
     'no-use-before-define': 'off',
 
+    // serverless chokes otherwise
+    'import/no-import-module-exports': 'off',
+
     '@typescript-eslint/explicit-function-return-type': ['error', {
       allowExpressions: true,
       allowTypedFunctionExpressions: true
