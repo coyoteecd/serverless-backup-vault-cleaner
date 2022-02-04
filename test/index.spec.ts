@@ -6,10 +6,22 @@ import ServerlessBackupVaultCleaner from '../src/index';
 
 describe('ServerlessBackupVaultCleaner', () => {
 
-  it('should create the plugin', () => {
+  it('should create the plugin and set up configuration schema', () => {
     const { serverless } = stubServerlessInstance();
     const plugin = new ServerlessBackupVaultCleaner(serverless, {} as Options, stubLogging());
     expect(plugin).toBeTruthy();
+
+    expect(serverless.configSchemaHandler.defineCustomProperties).toHaveBeenCalledWith({
+      type: 'object',
+      properties: {
+        'serverless-backup-vault-cleaner': jasmine.objectContaining({
+          properties: jasmine.objectContaining({
+            backupVaults: jasmine.anything(),
+            backupVaultsToCleanOnDeploy: jasmine.anything()
+          })
+        })
+      }
+    });
   });
 
   it('should fail when neither backupVaults nor backupVaultsToCleanOnDeploy is configured', async () => {
@@ -226,12 +238,12 @@ describe('ServerlessBackupVaultCleaner', () => {
           request: requestSpy
         }) as unknown as Aws,
       }, {
-        cli: jasmine.createSpyObj(['log']),
         service: jasmine.createSpyObj([], {
           custom: {
             'serverless-backup-vault-cleaner': config
           }
-        })
+        }),
+        configSchemaHandler: jasmine.createSpyObj(['defineCustomProperties'])
       })
     };
   }

@@ -1,3 +1,4 @@
+import type { JSONSchemaType } from 'ajv';
 import type {
   DeleteRecoveryPointInput, DescribeBackupVaultInput,
   ListRecoveryPointsByBackupVaultInput, ListRecoveryPointsByBackupVaultOutput, RecoveryPointByBackupVaultList
@@ -11,6 +12,23 @@ export default class ServerlessBackupVaultCleaner implements Plugin {
   private provider: Aws;
   private log: Logging['log'];
 
+  private configSchema: JSONSchemaType<ServerlessBackupVaultCleanerConfig> = {
+    type: 'object',
+    properties: {
+      backupVaults: {
+        type: 'array', uniqueItems: true, items: { type: 'string' }, nullable: true
+      },
+      backupVaultsToCleanOnDeploy: {
+        type: 'array', uniqueItems: true, items: { type: 'string' }, nullable: true
+      },
+    },
+    additionalProperties: false,
+    anyOf: [
+      { required: ['backupVaults'] },
+      { required: ['backupVaultsToCleanOnDeploy'] }
+    ]
+  };
+
   constructor(
     private readonly serverless: Serverless,
     _options: Options,
@@ -18,6 +36,13 @@ export default class ServerlessBackupVaultCleaner implements Plugin {
   ) {
     this.log = logging.log;
     this.provider = this.serverless.getProvider('aws');
+    this.serverless.configSchemaHandler.defineCustomProperties({
+      type: 'object',
+      properties: {
+        'serverless-backup-vault-cleaner': this.configSchema
+      }
+    });
+
     this.hooks = {
       'before:deploy:deploy': async () => this.remove(true),
       'before:remove:remove': async () => this.remove(false),
