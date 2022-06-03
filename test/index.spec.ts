@@ -248,12 +248,13 @@ describe('ServerlessBackupVaultCleaner', () => {
     };
   }
 
-  function stubLogging(): { writeText, log: jasmine.SpyObj<Logging['log']> } {
+  function stubLogging(): Logging {
     return {
-      writeText: undefined,
+      writeText: jasmine.createSpy(),
       log: jasmine.createSpyObj<Logging['log']>([
         'error', 'warning', 'success', 'notice'
-      ])
+      ]),
+      progress: jasmine.createSpyObj<Logging['progress']>(['get', 'create'])
     };
   }
 });
